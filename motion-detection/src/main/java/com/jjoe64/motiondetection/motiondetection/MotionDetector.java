@@ -5,13 +5,14 @@ import android.content.pm.PackageManager;
 import android.hardware.Camera;
 import android.os.Handler;
 import android.util.Log;
-import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+
+import static android.content.ContentValues.TAG;
 
 public class MotionDetector {
     class MotionDetectorThread extends Thread {
@@ -163,13 +164,21 @@ public class MotionDetector {
         @Override
         public void onPreviewFrame(byte[] data, Camera cam) {
             if (data == null) return;
-            Camera.Size size = cam.getParameters().getPreviewSize();
+            final Camera.Size size = cam.getParameters().getPreviewSize();
             if (size == null) return;
+//            Log.e("MotionDetector", "PreviewCallback get data"+data.length);
+//            Log.e("MotionDetector", "PreviewCallback get size"+size.width+"__"+size.height);
 
             consume(data, size.width, size.height);
+            //FIXME here get data to save file
+            try {
+                Thread.sleep(4000);
+                pictureCallback.onPictureTaken(data,cam);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
     };
-
 
     private SurfaceHolder.Callback surfaceCallback = new SurfaceHolder.Callback() {
 
@@ -191,8 +200,8 @@ public class MotionDetector {
          */
         @Override
         public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-            Camera.Parameters parameters = mCamera.getParameters();
-            Camera.Size size = getBestPreviewSize(width, height, parameters);
+            final Camera.Parameters parameters = mCamera.getParameters();
+            final Camera.Size size = getBestPreviewSize(width, height, parameters);
             if (size != null) {
                 parameters.setPreviewSize(size.width, size.height);
                 Log.d("MotionDetector", "Using width=" + size.width + " height=" + size.height);
@@ -200,6 +209,15 @@ public class MotionDetector {
             mCamera.setParameters(parameters);
             mCamera.startPreview();
             inPreview = true;
+            //FIXME MotionDetec can not with takePicture
+//            Log.e(TAG, "Use Preview Taking picture ");
+
+//            try {
+//                Thread.sleep(4000);
+//                mCamera.takePicture(null, null, pictureCallback);
+//            } catch (InterruptedException e) {
+//                e.printStackTrace();
+//            }
         }
 
         /**
@@ -208,6 +226,90 @@ public class MotionDetector {
         @Override
         public void surfaceDestroyed(SurfaceHolder holder) {
             // Ignore
+        }
+    };
+
+    private Camera.PictureCallback pictureCallback =new Camera.PictureCallback(){
+
+        @Override
+        public void onPictureTaken(byte[] data, Camera camera) {
+            Log.e("MotionDetector", "Camera onPictureTaken Image Captured Successfully ");
+            if (data!=null){
+                Log.e("MotionDetector", "Camera onPictureTaken Image Captured Successfully get data "+data.length);
+//                previewCallback.onPreviewFrame(data,camera);
+            }
+//            if (data != null) {
+//                // Intent mIntent = new Intent();
+//                // mIntent.putExtra("image",imageData);
+//                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN_MR1)
+//                    audioMgr.setStreamMute(AudioManager.STREAM_SYSTEM, false);
+//
+//                WindowManager winMan = (WindowManager) context
+//                        .getSystemService(WINDOW_SERVICE);
+//                winMan.removeView(surfaceView);
+//
+//                try {
+//                    BitmapFactory.Options opts = new BitmapFactory.Options();
+//                    Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0,
+//                            data.length, opts);
+//                    bitmap = Bitmap.createScaledBitmap(bitmap, 300, 300, false);
+//                    int width = bitmap.getWidth();
+//                    int height = bitmap.getHeight();
+//                    int newWidth = 300;
+//                    int newHeight = 300;
+//
+//                    // calculate the scale - in this case = 0.4f
+//                    float scaleWidth = ((float) newWidth) / width;
+//                    float scaleHeight = ((float) newHeight) / height;
+//
+//                    // createa matrix for the manipulation
+//                    Matrix matrix = new Matrix();
+//                    // resize the bit map
+//                    matrix.postScale(scaleWidth, scaleHeight);
+//                    // rotate the Bitmap
+//                    matrix.postRotate(-90);
+//                    Bitmap resizedBitmap = Bitmap.createBitmap(bitmap, 0, 0,
+//                            width, height, matrix, true);
+//
+//                    ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+//                    resizedBitmap.compress(Bitmap.CompressFormat.JPEG, 40,
+//                            bytes);
+//
+//                    // you can create a new file name "test.jpg" in sdcard
+//                    // folder.
+//                    File f = new File(Environment.getExternalStorageDirectory()
+//                            + File.separator + "test.jpg");
+//
+//                    System.out.println("File F : " + f);
+//
+//                    f.createNewFile();
+//                    // write the bytes in file
+//                    FileOutputStream fo = new FileOutputStream(f);
+//                    fo.write(bytes.toByteArray());
+//                    // remember close de FileOutput
+//                    fo.close();
+//                    context.stopService(new Intent(context,GetBackCoreService.class));
+//                } catch (Exception e) {
+//                    e.printStackTrace();
+//                }
+//                // StoreByteImage(mContext, imageData, 50,"ImageName");
+//                // setResult(FOTO_MODE, mIntent);
+//            }
+//
+//            GetBackCoreService getBackCoreService=new GetBackCoreService();
+//            getBackCoreService.stopSelf();
+        }
+    };
+
+    private Camera.ErrorCallback errorCallback =new Camera.ErrorCallback(){
+
+        @Override
+        public void onError(int error, Camera camera) {
+            Log.e(TAG, "Camera get Error : " + error );
+//            WindowManager winMan = (WindowManager) context
+//                    .getSystemService(WINDOW_SERVICE);
+//            winMan.removeView(surfaceView);
+//            callback.onCaptureError(-1);
         }
     };
 
